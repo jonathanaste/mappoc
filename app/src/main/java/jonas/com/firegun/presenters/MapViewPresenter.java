@@ -4,8 +4,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.os.Bundle;
 
-import com.google.android.gms.maps.model.LatLng;
-
 import jonas.com.firegun.FireGunsApplication;
 import jonas.com.firegun.interfaces.DataListener;
 import jonas.com.firegun.interfaces.view.MapView;
