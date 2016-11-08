@@ -14,7 +14,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.RequiresPermission;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
@@ -101,7 +100,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
 
     @Override
     public void onError() {
-        Toast.makeText(getContext(), "Request failed", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(), R.string.request_failed, Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -150,16 +149,16 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
             case MY_PERMISSIONS_REQUEST_LOCATION: {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d("permissions", " populateData(weaponList)");
                     setLocationMarker(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
                 } else {
-                    Toast.makeText(getContext(), "Enable permissions to use location services",
+                    Toast.makeText(getContext(), R.string.enable_permissions,
                             Toast.LENGTH_SHORT).show();
                 }
             }
         }
     }
 
+    // Check if the soldier steps into a danger zone.
     private void checkDangerZone() {
         if (myLocation != null && circles.size() > 0) {
             for (Circle circle : circles) {
@@ -167,7 +166,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
                 Location.distanceBetween(circle.getCenter().latitude, circle.getCenter().longitude,
                         myLocation.latitude, myLocation.longitude, distance);
                 if (distance[0] < circle.getRadius()) {
-                    Toast.makeText(getContext(), "DANGER ZONE!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), R.string.danger_zone, Toast.LENGTH_SHORT).show();
                 }
             }
         }
