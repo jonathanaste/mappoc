@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="base_url" translatable="false">https://redarmyserver.appspot.com/_ah/api/myApi/v1/%1$s</string>
+    <string name="weapons_url" translatable="false">torretinfocollection</string>
+</resources>
