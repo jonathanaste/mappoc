@@ -8,6 +8,7 @@ public class GetWeaponsRequest extends BaseRequest<WeaponResponse> {
 
     private static final String url = "https://redarmyserver.appspot.com/_ah/api/myApi/v1/torretinfocollection";
 
+    // Setting up request.
     public GetWeaponsRequest(DataListener<WeaponResponse> dataListener) {
         super(Method.GET,
                 url,

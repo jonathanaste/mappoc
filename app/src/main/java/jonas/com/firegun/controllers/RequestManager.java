@@ -29,6 +29,7 @@ public class RequestManager {
         return instance;
     }
 
+    // Creating request and adding to request queue.
     public void getWeaponsLocation(DataListener<WeaponResponse> listener){
         BaseRequest request = new GetWeaponsRequest(listener);
         queue.add(request);

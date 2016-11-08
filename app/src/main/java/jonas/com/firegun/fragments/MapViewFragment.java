@@ -3,25 +3,31 @@ package jonas.com.firegun.fragments;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresPermission;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
@@ -33,8 +39,7 @@ import jonas.com.firegun.models.Weapon;
 import jonas.com.firegun.models.WeaponResponse;
 import jonas.com.firegun.presenters.MapViewPresenter;
 
-public class MapViewFragment extends SupportMapFragment implements OnMapReadyCallback, MapView,
-        LocationListener {
+public class MapViewFragment extends SupportMapFragment implements OnMapReadyCallback, MapView{
 
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private GoogleMap map;
@@ -42,6 +47,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
     private MapViewPresenter presenter;
     private List<Circle> circles;
     private LocationManager locationManager;
+    private Marker marker;
 
     @Override
     public void onCreate(Bundle bundle) {
@@ -65,7 +71,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
 
         // If permission are granted, we are going to set our location and add the listener.
         if (areLocationPermissionGranted()) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, this);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, presenter);
             setLocationMarker(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         } else { // If permissions are not granted, we request them.
             requestLocationPermissions();
@@ -88,12 +94,26 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
 
         }
 
-        isInDangerZone();
+        checkDangerZone();
     }
 
     @Override
     public void onError() {
         //// TODO: 11/7/2016  
+    }
+
+    @Override
+    public void updateLocation(Location location) {
+        // In case the user didn't grant access we check it again
+        if (areLocationPermissionGranted()) {
+            // updating location
+            animateMarker(marker,new LatLng(location.getLatitude(),location.getLongitude()),false);
+            // checking if we are on a danger zone
+            checkDangerZone();
+        } else {
+            // requesting permission
+            requestLocationPermissions();
+        }
     }
 
     /**
@@ -120,12 +140,14 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
     @RequiresPermission(allOf = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION})
     private void setLocationMarker(Location location) {
         myLocation = new LatLng(location.getLatitude(), location.getLongitude());
-        map.addMarker(new MarkerOptions()
+        marker = map.addMarker(new MarkerOptions()
                 .position(myLocation)
                 .title(getString(R.string.current_position)));
         //Moving camera map to my current location.
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                 myLocation, 15));
+
+        checkDangerZone();
 
     }
 
@@ -147,8 +169,8 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
         }
     }
 
-    private void isInDangerZone() {
-        if (myLocation != null) {
+    private void checkDangerZone() {
+        if (myLocation != null && circles.size() > 0) {
             for (Circle circle : circles) {
                 float[] distance = new float[1];
                 Location.distanceBetween(circle.getCenter().latitude, circle.getCenter().longitude,
@@ -161,38 +183,53 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        // In case the user didn't grant access we check it again
-        if (areLocationPermissionGranted()) {
-            // updating location
-            setLocationMarker(location);
-            // checking if we are on a danger zone
-            isInDangerZone();
-        } else {
-            // requesting permission
-            requestLocationPermissions();
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String s) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String s) {
-
-    }
-
-    @Override
     public void onPause() {
         super.onPause();
         // Removing listener in case we go onPause()
-        locationManager.removeUpdates(this);
+        locationManager.removeUpdates(presenter);
     }
+
+    /**
+     * *
+     * @param marker current marker
+     * @param toPosition new marker position
+     * @param hideMarker true if you want to hide the marker, false otherwise.
+     */
+    public void animateMarker(final Marker marker, final LatLng toPosition,
+                              final boolean hideMarker) {
+        final Handler handler = new Handler();
+        final long start = SystemClock.uptimeMillis();
+        Projection proj = map.getProjection();
+        Point startPoint = proj.toScreenLocation(marker.getPosition());
+        final LatLng startLatLng = proj.fromScreenLocation(startPoint);
+        final long duration = 500;
+
+        final Interpolator interpolator = new LinearInterpolator();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation((float) elapsed
+                        / duration);
+                double lng = t * toPosition.longitude + (1 - t)
+                        * startLatLng.longitude;
+                double lat = t * toPosition.latitude + (1 - t)
+                        * startLatLng.latitude;
+                marker.setPosition(new LatLng(lat, lng));
+
+                if (t < 1.0) {
+                    // Post again 16ms later.
+                    handler.postDelayed(this, 16);
+                } else {
+                    if (hideMarker) {
+                        marker.setVisible(false);
+                    } else {
+                        marker.setVisible(true);
+                    }
+                }
+            }
+        });
+    }
+
 }
