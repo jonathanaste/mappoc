@@ -21,7 +21,7 @@ import jonas.com.firegun.interfaces.DataListener;
  * This is the generic request. All request must extend this class
  * @param <T> the response.
  */
-public class BaseRequest<T> extends Request<T> {
+public abstract class BaseRequest<T> extends Request<T> {
 
     private static final int MAX_RETRIES = 2;
     private static final int TIMEOUT = 10000;
@@ -41,7 +41,7 @@ public class BaseRequest<T> extends Request<T> {
                 MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
         //Tag to identify the event in case you need to cancel it.
-        setTag(clazz.getSimpleName());
+        setTag(getClass().getSimpleName());
 
         this.clazz = clazz;
         this.dataListener = dataListener;

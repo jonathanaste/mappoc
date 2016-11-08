@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -39,7 +40,7 @@ import jonas.com.firegun.models.Weapon;
 import jonas.com.firegun.models.WeaponResponse;
 import jonas.com.firegun.presenters.MapViewPresenter;
 
-public class MapViewFragment extends SupportMapFragment implements OnMapReadyCallback, MapView{
+public class MapViewFragment extends SupportMapFragment implements OnMapReadyCallback, MapView,LocationListener {
 
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private GoogleMap map;
@@ -65,13 +66,14 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
     }
 
     @Override
+    @SuppressWarnings({"ResourceType"})
     public void onMapReady(GoogleMap googleMap) {
         // Keeping an instance of our map.
         this.map = googleMap;
 
         // If permission are granted, we are going to set our location and add the listener.
         if (areLocationPermissionGranted()) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, presenter);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
             setLocationMarker(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
         } else { // If permissions are not granted, we request them.
             requestLocationPermissions();
@@ -102,20 +104,6 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
         //// TODO: 11/7/2016  
     }
 
-    @Override
-    public void updateLocation(Location location) {
-        // In case the user didn't grant access we check it again
-        if (areLocationPermissionGranted()) {
-            // updating location
-            animateMarker(marker,new LatLng(location.getLatitude(),location.getLongitude()),false);
-            // checking if we are on a danger zone
-            checkDangerZone();
-        } else {
-            // requesting permission
-            requestLocationPermissions();
-        }
-    }
-
     /**
      * Use this method to request permission for location.
      */
@@ -139,19 +127,21 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
 
     @RequiresPermission(allOf = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION})
     private void setLocationMarker(Location location) {
-        myLocation = new LatLng(location.getLatitude(), location.getLongitude());
-        marker = map.addMarker(new MarkerOptions()
-                .position(myLocation)
-                .title(getString(R.string.current_position)));
-        //Moving camera map to my current location.
-        map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                myLocation, 15));
+        if(location!=null) {
+            myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+            marker = map.addMarker(new MarkerOptions()
+                    .position(myLocation)
+                    .title(getString(R.string.current_position)));
+            //Moving camera map to my current location.
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                    myLocation, 15));
 
-        checkDangerZone();
-
+            checkDangerZone();
+        }
     }
 
     @Override
+    @SuppressWarnings({"ResourceType"})
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -183,10 +173,13 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
     }
 
     @Override
+    @SuppressWarnings({"ResourceType"})
     public void onPause() {
         super.onPause();
         // Removing listener in case we go onPause()
-        locationManager.removeUpdates(presenter);
+        if(locationManager != null) {
+            locationManager.removeUpdates(this);
+        }
     }
 
     /**
@@ -231,5 +224,37 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
             }
         });
     }
+
+
+    // Location map updated
+    @Override
+    public void onLocationChanged(Location location) {
+        // In case the user didn't grant access we check it again
+        if (areLocationPermissionGranted()) {
+            // updating location
+            animateMarker(marker,new LatLng(location.getLatitude(),location.getLongitude()),false);
+            // checking if we are on a danger zone
+            checkDangerZone();
+        } else {
+            // requesting permission
+            requestLocationPermissions();
+        }
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
+
+    }
+
 
 }
