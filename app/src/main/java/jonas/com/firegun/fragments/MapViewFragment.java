@@ -101,7 +101,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
 
     @Override
     public void onError() {
-        //// TODO: 11/7/2016  
+        Toast.makeText(getContext(), "Request failed", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -153,7 +153,8 @@ public class MapViewFragment extends SupportMapFragment implements OnMapReadyCal
                     Log.d("permissions", " populateData(weaponList)");
                     setLocationMarker(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
                 } else {
-                    //TODO empty sttate
+                    Toast.makeText(getContext(), "Enable permissions to use location services",
+                            Toast.LENGTH_SHORT).show();
                 }
             }
         }
